@@ -1,0 +1,34 @@
+# Labelled single-turn questions for scripts/measure_tool_overload.py (Step 3).
+# `tool` is the correct tool among the six real ones; `args` are the arguments that must match.
+# Several questions are deliberately close to a distractor (glass repair booking, hire car booking,
+# settlement payments) so the measurement shows confusion as the tool count grows.
+
+- {say: "What's the status of claim CLM-77120?", tool: get_claim_status, args: {claim_id: CLM-77120}}
+- {say: "Any news on CLM-90107?", tool: get_claim_status, args: {claim_id: CLM-90107}}
+- {say: "Where is my car repair claim up to? It's CLM-77120.", tool: get_claim_status, args: {claim_id: CLM-77120}}
+- {say: "Has anything happened on CLM-88213 this week?", tool: get_claim_status, args: {claim_id: CLM-88213}}
+- {say: "Is my claim CLM-77120 on hold or still moving?", tool: get_claim_status, args: {claim_id: CLM-77120}}
+- {say: "Show me all my claims.", tool: list_my_claims}
+- {say: "Do I have any open claims at the moment?", tool: list_my_claims}
+- {say: "How many claims have I made with you?", tool: list_my_claims}
+- {say: "Which policies do I have with you?", tool: list_my_policies}
+- {say: "What insurance do I hold with you?", tool: list_my_policies}
+- {say: "Can you list my policies?", tool: list_my_policies}
+- {say: "What does policy MTR-5530217 cover?", tool: get_cover_summary, args: {policy_id: MTR-5530217}}
+- {say: "What's the excess on MTR-5530217?", tool: get_cover_summary, args: {policy_id: MTR-5530217}}
+- {say: "Give me a summary of the cover on HOM-2290031.", tool: get_cover_summary, args: {policy_id: HOM-2290031}}
+- {say: "What does the wording of MTR-5530217 say about windscreens?", tool: search_policy_wording,
+   args: {policy_id: MTR-5530217}}
+- {say: "On MTR-5530217, am I covered for a cracked windscreen?", tool: search_policy_wording,
+   args: {policy_id: MTR-5530217}}
+- {say: "Under MTR-5530217, do I get a hire car while mine is repaired?", tool: search_policy_wording,
+   args: {policy_id: MTR-5530217}}
+- {say: "Does HOM-2290031 cover a leaking pipe?", tool: search_policy_wording, args: {policy_id: HOM-2290031}}
+- {say: "What does MTR-5530217 say I must do after an accident?", tool: search_policy_wording,
+   args: {policy_id: MTR-5530217}}
+- {say: "Someone reversed into my car this morning.", tool: start_claim_report}
+- {say: "I need to report an accident.", tool: start_claim_report}
+- {say: "My kitchen ceiling is leaking from the flat above, I want to claim.", tool: start_claim_report}
+- {say: "A stone cracked my windscreen on the motorway, I'd like to make a claim.", tool: start_claim_report}
+- {say: "My car was stolen last night.", tool: start_claim_report}
+- {say: "I want to open a new claim.", tool: start_claim_report}

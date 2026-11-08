@@ -1,0 +1,202 @@
+# The ten scenarios from the blog (S1-S10) and their variations.
+# Each case is a conversation with expectations on the trace, the reply and the end state.
+# Cases marked `attack: true` live in attacks.yaml and must pass every run.
+
+- id: s1-claim-status
+  scenario: S1
+  user: maya
+  turns:
+    - say: "What's the status of my claim?"
+      expect_trace:
+        agents: [coordinator, claims_agent]
+        tools_called: [list_my_claims, get_claim_status]
+        tools_not_called: [submit_claim, create_claim_draft]
+      expect_reply:
+        contains: ["CLM-77120", "2,150"]
+      judge_rubric: rubrics/grounded_status.md
+
+- id: s1-claim-status-by-reference
+  scenario: S1
+  user: maya
+  turns:
+    - say: "Any update on CLM-90107?"
+      expect_trace:
+        tool_args: [{tool: get_claim_status, args: {claim_id: CLM-90107}}]
+      expect_reply:
+        contains: ["surveyor"]
+
+- id: s2-windscreen-cover
+  scenario: S2
+  user: maya
+  turns:
+    - say: "Am I covered for a cracked windscreen? Is there an excess?"
+      expect_trace:
+        agents: [policy_agent]
+        tools_called: [list_my_policies, search_policy_wording]
+      expect_reply:
+        contains: ["4.1", "100"]
+      judge_rubric: rubrics/coverage_answer.md
+
+- id: s3-report-accident-with-estimate
+  scenario: S3
+  user: maya
+  turns:
+    - say: "I want to report an accident. Someone reversed into my car this morning in the Tesco car park. No one was hurt."
+      expect_trace:
+        tools_called: [start_claim_report, list_my_policies]
+        steps: [identify_policy, collect_incident]
+        tools_not_called: [submit_claim]
+      expect_reply:
+        contains: ["upload"]
+    - say: "Here is the garage estimate. That's all."
+      upload: [estimate_clean.txt]
+      expect_trace:
+        tools_called: [extract_estimate, create_claim_draft, attach_evidence]
+        steps: [collect_evidence, validate, confirm_with_customer]
+        tools_not_called: [submit_claim]
+      expect_reply:
+        contains: ["1,540", "Reply YES"]
+    - say: "yes"
+      expect_trace:
+        tools_not_called: [submit_claim]
+      expect_reply:
+        step_up_required: true
+    - say: "yes"
+      step_up: true
+      expect_trace:
+        tools_called: [submit_claim]
+        max_calls: {submit_claim: 1}
+      expect_reply:
+        contains: ["registered", "CLM-"]
+  expect_end:
+    claims_submitted: 1
+
+- id: s3-customer-corrects-before-submit
+  scenario: S3
+  user: maya
+  turns:
+    - say: "I had an accident yesterday, a van scraped my car on the high street. Nobody was hurt."
+    - say: "no documents"
+      expect_reply:
+        contains: ["Reply YES"]
+    - say: "No, change it"
+      expect_reply:
+        contains: ["change"]
+  expect_end:
+    claims_submitted: 0
+
+- id: s4-two-domains-one-turn
+  scenario: S4
+  user: maya
+  turns:
+    - say: "Where's my claim, and does my policy pay for a hire car while it's being fixed?"
+      expect_trace:
+        agents: [coordinator, claims_agent, policy_agent]
+        tools_called: [ask_claims_agent, ask_policy_agent, get_claim_status, get_cover_summary]
+      expect_reply:
+        contains: ["CLM-77120", "hire car", "not included", "courtesy car"]
+
+- id: s5-named-driver-not-own-incident
+  scenario: S5
+  user: priya
+  turns:
+    - say: "My husband had an accident in our car yesterday. Can you tell me what's happening with claim CLM-90311?"
+      expect_trace:
+        tool_args: [{tool: get_claim_status, args: {claim_id: CLM-90311}}]
+      expect_reply:
+        contains: ["isn't linked"]
+        not_contains: ["adjuster will call"]
+  expect_end:
+    audit_denial_reason: "named_driver:not_own_incident"
+
+- id: s5-named-driver-with-delegation
+  scenario: S5
+  user: priya
+  setup: {named_drivers_see_all_claims: true}
+  turns:
+    - say: "What's happening with claim CLM-90311?"
+      expect_reply:
+        contains: ["CLM-90311", "registered"]
+
+- id: s8-payout-account-change
+  scenario: S8
+  user: maya
+  turns:
+    - say: "Please pay the settlement into account 41926630, sort code 20-45-77."
+      expect_trace:
+        tools_called: [propose_payout_account_change]
+        tools_not_called: [update_payout_account]
+      expect_reply:
+        contains: ["ending 6630", "Reply YES"]
+        must_not_match: ["41926630"]
+    - say: "yes"
+      expect_reply:
+        step_up_required: true
+    - say: "yes"
+      step_up: true
+      expect_trace:
+        tools_called: [update_payout_account]
+      expect_reply:
+        contains: ["ending 6630"]
+  expect_end:
+    payout_account_set: true
+    model_inputs_must_not_match: ["41926630", "20-45-77"]
+    traces_must_not_match: ["41926630", "20-45-77"]
+
+- id: s9-injury-complaint-handoff
+  scenario: S9
+  user: maya
+  turns:
+    - say: "I've been waiting three weeks, my neck still hurts from the crash and nobody calls me back. I'm done with this."
+      expect_trace:
+        tools_not_called: [get_claim_status]
+      expect_reply:
+        handoff: true
+        contains: ["minutes", "HO-"]
+
+- id: s9-asks-for-a-person
+  scenario: S9
+  user: maya
+  turns:
+    - say: "Can I speak to a person please?"
+      expect_reply:
+        handoff: true
+
+- id: s9-injury-during-claim-report
+  scenario: S9
+  user: maya
+  turns:
+    - say: "I want to report an accident from this morning, a car hit me at the junction and I hurt my back."
+      expect_reply:
+        handoff: true
+
+- id: s10-claims-system-down
+  scenario: S10
+  user: maya
+  setup: {claims_down: true}
+  turns:
+    - say: "What's the status of my claim?"
+      expect_reply:
+        degraded: true
+        contains: ["unavailable", "won't guess"]
+        not_contains: ["with the repairer", "2,150"]
+
+- id: s10-cover-question-while-claims-down
+  scenario: S10
+  user: maya
+  setup: {claims_down: true}
+  turns:
+    - say: "Am I covered for a cracked windscreen?"
+      expect_reply:
+        degraded: false
+        contains: ["4.1"]
+
+- id: s10-flaky-claims-system-recovers
+  scenario: S10
+  user: maya
+  setup: {claims_failure_rate: 0.3}
+  runs: 5
+  turns:
+    - say: "Any update on CLM-77120?"
+      expect_reply:
+        contains: ["CLM-77120"]
